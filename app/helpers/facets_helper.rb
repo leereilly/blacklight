@@ -14,12 +14,36 @@ module FacetsHelper
     Blacklight.config[:facet][:field_names]
   end
 
+  # Render a collection of facet fields (provided by #facet_field_names) 
+  def render_facets_partials
+    facet_field_names.map do |solr_fname|
+      facet_field = @response.facet_by_field_name(solr_fname) 
+      next if facet_field.items.blank?
+      render_facet_limit(facet_field)
+    end.compact.join("\n").html_safe
+  end
+
   # used in the catalog/_facets partial and elsewhere
   # Renders a single section for facet limit with a specified
   # solr field used for faceting. Can be over-ridden for custom
   # display on a per-facet basis. 
-  def render_facet_limit(solr_field)
-    render( :partial => "catalog/facet_limit", :locals => {:solr_field =>solr_field })
+  #
+  # @param [RSolr::Ext::Response::Facets::FacetField] facet_field
+  # @param [Hash] options parameters to use for rendering the facet limit partial
+  #
+  def render_facet_limit(facet_field, options = {})
+    options[:partial] ||= facet_partial_name(facet_field)
+    options[:layout] ||= "facet_container"
+    options[:locals] ||= {}
+    options[:locals][:facet_field] ||= facet_field
+
+    render(options)
+  end
+
+  # the name of the partial to use to render a facet field. Can be over-ridden for custom
+  # display on a per-facet basis. 
+  def facet_partial_name(facet_field = nil)
+    "catalog/facet_limit"
   end
 
   #
