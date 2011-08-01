@@ -43,7 +43,8 @@ module FacetsHelper
   # the name of the partial to use to render a facet field. Can be over-ridden for custom
   # display on a per-facet basis. 
   def facet_partial_name(facet_field = nil)
-    "catalog/facet_limit"
+    name = facet_partial_hash[facet_field] 
+    name ||= "catalog/facet_limit"
   end
 
   #

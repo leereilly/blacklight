@@ -50,11 +50,6 @@ module Blacklight::SolrHelper
   MaxPerPage = 100
 
   included do
-    if self.respond_to?(:helper_method)
-      helper_method(:facet_limit_hash)
-      helper_method(:facet_limit_for)
-    end
-
     # We want to install a class-level place to keep 
     # solr_search_params_logic method names. Compare to before_filter,
     # similar design. Since we're a module, we have to add it in here.
@@ -69,6 +64,17 @@ module Blacklight::SolrHelper
     # CatalogController.solr_search_params_logic += [:new_method]
     # CatalogController.solr_search_params_logic.delete(:we_dont_want)
     self.solr_search_params_logic = [:default_solr_parameters , :add_query_to_solr, :add_facet_fq_to_solr, :add_facetting_to_solr, :add_sorting_paging_to_solr ]
+
+    class_attribute :facet_partial_hash
+    self.facet_partial_hash = Blacklight.config[:facet][:partials] || {}
+
+    if self.respond_to?(:helper_method)
+      helper_method(:facet_limit_hash)
+      helper_method(:facet_limit_for)
+      helper_method(:facet_partial_hash)
+    end
+
+
   end
 
   def force_to_utf8(value)
