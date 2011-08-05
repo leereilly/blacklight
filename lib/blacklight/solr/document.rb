@@ -202,7 +202,11 @@ module Blacklight::Solr::Document
     attr_writer :registered_extensions
 
      def unique_key
-       Blacklight.config[:unique_key] || 'id'
+       @unique_key ||= 'id'
+     end
+
+     def unique_key= key
+       @unique_key = key
      end
 
      def connection

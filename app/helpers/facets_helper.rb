@@ -1,17 +1,17 @@
 module FacetsHelper
 
   #
-  # Blacklight.config based helpers ->
+  # blacklight_config based helpers ->
   #
   
   # used in the catalog/_facets partial
   def facet_field_labels
-    Blacklight.config[:facet][:labels]
+    blacklight_config[:facet][:labels]
   end
   
   # used in the catalog/_facets partial
   def facet_field_names
-    Blacklight.config[:facet][:field_names]
+    blacklight_config[:facet][:field_names]
   end
 
   # used in the catalog/_facets partial and elsewhere

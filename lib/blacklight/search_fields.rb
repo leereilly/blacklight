@@ -3,7 +3,7 @@
 # Module to deal with accessing (and setting some defaults) in an array of
 # hashes that describe Blacklight search fields.  Requires the base class this
 # module is added to implements a #config method that returns a hash, where
-# config[:search_fields] will be an array of hashes describing search fields.
+# blacklight_config[:search_fields] will be an array of hashes describing search fields.
 #
 # = Search Field Configuration Hash =
 # [:key]
@@ -11,7 +11,7 @@
 # [:display_label]
 #   "Title",  # user-displayable label, optional, if not supplied :key.titlecase will be used
 # [:qt]
-#   "search", # Solr qt param, request handler, usually can be left blank; defaults to Blacklight.config[:default_solr_params][:qt] if not specified. 
+#   "search", # Solr qt param, request handler, usually can be left blank; defaults to blacklight_config[:default_solr_params][:qt] if not specified. 
 # [:solr_parameters]
 #   {:qf => "something"} # optional hash of additional parameters to pass to solr for searches on this field.
 # [:solr_local_parameters]
@@ -27,12 +27,24 @@
 ##
 module Blacklight::SearchFields
   extend ActiveSupport::Memoizable
+  extend ActiveSupport::Concern
 
-  # Looks up search field config list from config[:search_fields], and
+  included do
+    if self.respond_to?(:helper_method)
+      helper_method(:search_field_list)
+      helper_method(:normalize_config)
+      helper_method(:search_field_options_for_select)
+      helper_method(:search_field_def_for_key)
+      helper_method(:default_search_field)
+      helper_method(:label_for_search_field)
+    end
+  end
+
+  # Looks up search field config list from blacklight_config[:search_fields], and
   # 'normalizes' all field config hashes using normalize_config method. 
   # Memoized for efficiency of normalization. 
   def search_field_list
-    normalized = config[:search_fields].collect {|obj| normalize_config(obj)}
+    normalized = blacklight_config[:search_fields].collect {|obj| normalize_config(obj)}
 
     if (duplicates = normalized.collect{|h| h[:key]}.uniq!)
       raise "Duplicate keys found in search_field config: #{duplicates.inspect}"
@@ -61,7 +73,7 @@ module Blacklight::SearchFields
   # Returns default search field, used for simpler display in history, etc.
   # if not set in config, defaults to first field listed in #search_field_list
   def default_search_field
-    config[:default_search_field] || search_field_list[0]
+    blacklight_config[:default_search_field] || search_field_list[0]
   end
   memoize :default_search_field
 
@@ -99,7 +111,7 @@ module Blacklight::SearchFields
     field_hash[:display_label] ||= field_hash[:key].titlecase
 
     # If no :qt was provided, take from config default
-    field_hash[:qt] ||= config[:default_solr_params][:qt] if config[:default_solr_params]
+    field_hash[:qt] ||= blacklight_config[:default_solr_params][:qt] if blacklight_config[:default_solr_params]
   
     field_hash
   end

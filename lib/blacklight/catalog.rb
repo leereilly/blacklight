@@ -20,6 +20,10 @@ module Blacklight::Catalog
     # The index action will more than likely throw this one.
     # Example, when the standard query parser is used, and a user submits a "bad" query.
     rescue_from RSolr::Error::Http, :with => :rsolr_request_error
+
+    class_attribute :blacklight_config
+    self.blacklight_config = Blacklight.config.dup
+    helper_method :blacklight_config
   end
   
 
@@ -63,7 +67,7 @@ module Blacklight::Catalog
     end
 
     def unapi
-      @export_formats = Blacklight.config[:unapi] || {}
+      @export_formats = blacklight_config[:unapi] || {}
       @format = params[:format]
       if params[:id]
         @response, @document = get_solr_response_for_doc_id

@@ -46,6 +46,7 @@
 
 module Blacklight::SolrHelper
   extend ActiveSupport::Concern
+  include Blacklight::SearchFields
 
   MaxPerPage = 100
 
@@ -132,8 +133,8 @@ module Blacklight::SolrHelper
     # Start with general defaults from BL config. Need to use custom
     # merge to dup values, to avoid later mutating the original by mistake.
     def default_solr_parameters(solr_parameters, user_params)
-      if Blacklight.config[:default_solr_params]
-        Blacklight.config[:default_solr_params].each_pair do |key, value|
+      if blacklight_config[:default_solr_params]
+        blacklight_config[:default_solr_params].each_pair do |key, value|
           solr_parameters[key] = value.dup rescue value
         end
       end
@@ -151,7 +152,7 @@ module Blacklight::SolrHelper
       end
 
       if solr_parameters[:sort].blank?
-        default_sort_field = Blacklight.config[:sort_fields].first || [nil, nil]
+        default_sort_field = blacklight_config[:sort_fields].first || [nil, nil]
         solr_parameters[:sort] = default_sort_field.last unless default_sort_field.last.blank?
       end
       
@@ -175,7 +176,7 @@ module Blacklight::SolrHelper
       # rspec'd. 
       solr_parameters[:qt] = user_parameters[:qt] if user_parameters[:qt]
       
-      search_field_def = Blacklight.search_field_def_for_key(user_parameters[:search_field])
+      search_field_def = search_field_def_for_key(user_parameters[:search_field])
       if (search_field_def)     
         solr_parameters[:qt] = search_field_def[:qt] if search_field_def[:qt]      
         solr_parameters.merge!( search_field_def[:solr_parameters]) if search_field_def[:solr_parameters]
@@ -402,13 +403,13 @@ module Blacklight::SolrHelper
   end
     
   # returns a solr params hash
-  # if field is nil, the value is fetched from Blacklight.config[:index][:show_link]
+  # if field is nil, the value is fetched from blacklight_config[:index][:show_link]
   # the :fl (solr param) is set to the "field" value.
   # per_page is set to 10
   def solr_opensearch_params(field=nil)
     solr_params = solr_search_params
     solr_params[:per_page] = 10
-    solr_params[:fl] = Blacklight.config[:index][:show_link]
+    solr_params[:fl] = blacklight_config[:index][:show_link]
     solr_params
   end
   
@@ -458,7 +459,7 @@ module Blacklight::SolrHelper
   # Used by SolrHelper#solr_search_params to add limits to solr
   # request for all configured facet limits.
   def facet_limit_hash
-    Blacklight.config[:facet][:limits] || {}
+    blacklight_config[:facet][:limits] || {}
   end
 
   def max_per_page
