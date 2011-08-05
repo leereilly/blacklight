@@ -8,7 +8,7 @@ describe Blacklight::SearchFields do
 
     # add in a #config method that includes search field config
     # that will be used by SearchFields
-    def config
+    def blacklight_config
       @config ||= {:search_fields => [ {:display_label => 'All Fields', :key => "all_fields"},
                            {:key => 'title', :qt => 'title_search'},
                            {:key => 'author', :qt => 'author_search'},
@@ -16,7 +16,7 @@ describe Blacklight::SearchFields do
                            ['Legacy Config', 'legacy_qt'],
                            {:key => "no_display", :qt=>"something", :include_in_simple_select => false}
                           ],
-        :default_qt => "search"
+                           :default_solr_params => { :qt => "search" }
       }
     end
     
@@ -41,7 +41,7 @@ describe Blacklight::SearchFields do
   end
 
   it "should fill in default qt where needed" do
-    @search_field_obj.search_field_def_for_key("all_fields")[:qt].should == Blacklight.config[:default_qt]
+    @search_field_obj.search_field_def_for_key("all_fields")[:qt].should == @search_field_obj.blacklight_config[:default_solr_params][:qt]
   end
   
   it "should return proper options_for_select arguments" do
@@ -80,7 +80,7 @@ describe Blacklight::SearchFields do
   describe "for unspecified :key" do
     before do
       @bad_config = MockConfig.new
-      @bad_config.config[:search_fields] = [ 
+      @bad_config.blacklight_config[:search_fields] = [ 
         {:display_label => 'All Fields', :qt => "all_fields"},
         {:key => 'title', :qt => 'title_search'}
       ]
@@ -93,7 +93,7 @@ describe Blacklight::SearchFields do
   describe "for duplicate keys" do
     before do
       @bad_config = MockConfig.new
-      @bad_config.config[:search_fields] = [ 
+      @bad_config.blacklight_config[:search_fields] = [ 
         {:display_label => 'All Fields', :key => "my_key"},
         {:key => 'title', :key => 'my_key'}
       ]
