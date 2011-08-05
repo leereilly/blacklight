@@ -20,6 +20,10 @@ module Blacklight::Catalog
     # The index action will more than likely throw this one.
     # Example, when the standard query parser is used, and a user submits a "bad" query.
     rescue_from RSolr::Error::Http, :with => :rsolr_request_error
+
+    class_attribute :blacklight_config
+    self.blacklight_config = Blacklight.config.dup
+    helper_method :blacklight_config
   end
   
 
