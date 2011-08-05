@@ -2,7 +2,11 @@
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "catalog/index.atom.builder" do  
-  
+  module MockConfiguration
+    def blacklight_config
+      Blacklight.config
+    end
+  end
 
   before(:all) do
     class AtomMockDocument
@@ -39,6 +43,7 @@ describe "catalog/index.atom.builder" do
     params.merge!( @params )
     @response = @rsolr_response
  
+    view.extend(MockConfiguration)
     render 
 
     # We need to use rexml to test certain things that have_tag wont' test    

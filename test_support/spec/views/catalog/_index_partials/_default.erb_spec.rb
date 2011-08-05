@@ -8,12 +8,19 @@ describe "/catalog/_index_partials/_default.erb" do
   
   include BlacklightHelper
   include CatalogHelper
+  module MockConfiguration
+    def blacklight_config
+      Blacklight.config
+    end
+  end
+  include MockConfiguration
+
   
   before(:each) do
-    @fname_1 = Blacklight.config[:index_fields][:field_names].last
+    @fname_1 = blacklight_config[:index_fields][:field_names].last
     @fname_2 = "solr_field_not_in_initializer"
-    @fname_3 = Blacklight.config[:index_fields][:field_names][1]
-    @fname_4 = Blacklight.config[:index_fields][:field_names][0]
+    @fname_3 = blacklight_config[:index_fields][:field_names][1]
+    @fname_4 = blacklight_config[:index_fields][:field_names][0]
     
     @document = mock("solr_doc")
     @document.should_receive(:get).with(@fname_1, hash_including(:sep => nil)).any_number_of_times.and_return("val_1")
@@ -31,11 +38,12 @@ describe "/catalog/_index_partials/_default.erb" do
     @document.should_receive(:get).with(anything(), hash_including(:sep => nil)).any_number_of_times.and_return("bleah")
     @document.should_receive(:[]).any_number_of_times
     
-    @flabel_1 = Blacklight.config[:index_fields][:labels][@fname_1]
-    @flabel_3 = Blacklight.config[:index_fields][:labels][@fname_3]
-    @flabel_4 = Blacklight.config[:index_fields][:labels][@fname_4]
+    @flabel_1 = blacklight_config[:index_fields][:labels][@fname_1]
+    @flabel_3 = blacklight_config[:index_fields][:labels][@fname_3]
+    @flabel_4 = blacklight_config[:index_fields][:labels][@fname_4]
 
     assigns[:document] = @document
+    view.extend(MockConfiguration)
     render_document_partial @document, :index
   end
 

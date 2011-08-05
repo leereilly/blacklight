@@ -62,9 +62,14 @@ def exportable_record
   </datafield>
 </record>"
 end
+
 describe BlacklightHelper do
   include ERB::Util
   include BlacklightHelper
+  def blacklight_config
+    @config ||= {:show => {:html_title => 'title_display', :heading => 'title_display', :display_type => 'format'}, :index => { :show_link => 'title_display', :record_display_type => 'format' } }   
+  end
+
   
   describe "link_back_to_catalog" do
     before(:all) do
@@ -169,8 +174,9 @@ describe BlacklightHelper do
    end
    
    describe "document_heading" do
+
      it "should consist of the show heading field when available" do
-      @document = SolrDocument.new(Blacklight.config[:show][:heading] => "A Fake Document")
+      @document = SolrDocument.new('title_display' => "A Fake Document")
 
       document_heading.should == "A Fake Document"
      end
@@ -183,7 +189,7 @@ describe BlacklightHelper do
 
    describe "render_document_heading" do
      it "should consist of #document_heading wrapped in a <h1>" do
-      @document = SolrDocument.new(Blacklight.config[:show][:heading] => "A Fake Document")
+      @document = SolrDocument.new('title_display' => "A Fake Document")
 
       render_document_heading.should have_selector("h1", :content => document_heading, :count => 1)
       render_document_heading.html_safe?.should == true
@@ -303,11 +309,10 @@ describe BlacklightHelper do
   
   describe "convenience methods" do
     it "should handle the case where we don't have a spellmax set in the config" do
+      self.should_receive(:blacklight_config).and_return({:spell_max => 5})
       spell_check_max.should == 5
-      sm = Blacklight.config[:spell_max]
-      Blacklight.config[:spell_max] = nil
+      self.should_receive(:blacklight_config).and_return({})
       spell_check_max.should == 0
-      Blacklight.config[:spell_max] = sm
     end
   end
 end

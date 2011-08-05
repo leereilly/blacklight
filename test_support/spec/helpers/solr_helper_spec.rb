@@ -17,6 +17,10 @@ class MockSolrHelperContainer
     @params ||= {}
   end
 
+  def blacklight_config
+    Blacklight.config
+  end
+
 end
 
 
@@ -57,7 +61,7 @@ describe 'Blacklight::SolrHelper' do
       end
 
       it "should contain some display fields" do
-        Blacklight.config[:show].should_not == nil
+        @solr_helper.blacklight_config[:show].should_not == nil
       end
 
     end
@@ -96,10 +100,10 @@ describe 'Blacklight::SolrHelper' do
         @produced_params[:per_page].should == 10
       end
       it 'should have default facet fields' do
-        @produced_params[:"facet.field"].should == Blacklight.config[:default_solr_params][:"facet.field"]
+        @produced_params[:"facet.field"].should == @solr_helper.blacklight_config[:default_solr_params][:"facet.field"]
       end
       it 'should not use the exact facet array from config defaults' do
-        @produced_params[:"facet.field"].should_not be_equal(Blacklight.config[:facet][:field_names])
+        @produced_params[:"facet.field"].should_not be_equal(@solr_helper.blacklight_config[:facet][:field_names])
       end
       it "should have default qt"  do
         @produced_params[:qt].should == "search"
@@ -139,7 +143,7 @@ describe 'Blacklight::SolrHelper' do
 
         params[:q].should be_blank
         params["spellcheck.q"].should be_blank
-        params[:"facet.field"].should == Blacklight.config[:default_solr_params][:"facet.field"]
+        params[:"facet.field"].should == @solr_helper.blacklight_config[:default_solr_params][:"facet.field"]
 
         @single_facet.each_value do |value|
           params[:fq].should include("{!raw f=#{@single_facet.keys[0]}}#{value}")
@@ -203,7 +207,7 @@ describe 'Blacklight::SolrHelper' do
         @solr_params["spellcheck.q"].should == "wome"
       end
       it "should include facet.field from default_solr_params" do
-        @solr_params[:"facet.field"].should == Blacklight.config[:default_solr_params][:"facet.field"]
+        @solr_params[:"facet.field"].should == @solr_helper.blacklight_config[:default_solr_params][:"facet.field"]
       end
       it "should include spellcheck.dictionary from field def solr_parameters" do
         @solr_params[:"spellcheck.dictionary"].should == "subject"
@@ -231,19 +235,14 @@ describe 'Blacklight::SolrHelper' do
     describe "with a complex parameter environment" do
       before do
         # Add a custom search field def in so we can test it
-        Blacklight.config[:search_fields] << {:display_label => "Test", :key=>"test_field", :solr_parameters => {:qf => "fieldOne^2.3 fieldTwo fieldThree^0.4", :pf => "", :spellcheck => 'false', :per_page => "55", :sort => "request_params_sort"}}
-        #re-memoize
-        Blacklight.search_field_list(:reload)
-
+        @solr_helper.blacklight_config[:search_fields] << {:display_label => "Test", :key=>"test_field", :solr_parameters => {:qf => "fieldOne^2.3 fieldTwo fieldThree^0.4", :pf => "", :spellcheck => 'false', :per_page => "55", :sort => "request_params_sort"}}
         # Add some params
         @solr_helper_with_params = MockSolrHelperContainer.new
         @solr_helper_with_params.params = {:search_field => "test_field", :q => "test query", "facet.field" => "extra_facet"}
       end
       after do
         # restore search field list to how it was.
-        Blacklight.config[:search_fields].delete_if {|hash| hash[:key] == "test_field"}
-        #re-memoize
-        Blacklight.search_field_list(:reload)
+        @solr_helper.blacklight_config[:search_fields].delete_if {|hash| hash[:key] == "test_field"}
       end
 
       it "should merge parameters from search_field definition" do
@@ -269,7 +268,7 @@ describe 'Blacklight::SolrHelper' do
         end
 
         it "should fall through to BL general defaults for qt not otherwise specified " do
-          @produced_params[:qt].should == Blacklight.config[:default_solr_params][:qt]
+          @produced_params[:qt].should == @solr_helper.blacklight_config[:default_solr_params][:qt]
         end
 
         it "should take per_page from search field definition where specified" do
@@ -294,22 +293,22 @@ describe 'Blacklight::SolrHelper' do
     describe "sorting" do
       it "should send the default sort parameter to solr" do
         test_sort_field = ['test', 'solr_test_field asc'] 
-        Blacklight.config[:sort_fields].unshift(test_sort_field)
+        @solr_helper.blacklight_config[:sort_fields].unshift(test_sort_field)
 
         produced_params = @solr_helper.solr_search_params
         produced_params[:sort].should == 'solr_test_field asc'
 
-        Blacklight.config[:sort_fields].delete(test_sort_field)
+        @solr_helper.blacklight_config[:sort_fields].delete(test_sort_field)
       end
 
       it "should not send a sort parameter to solr if the sort value is blank" do
         test_sort_field = ['test', nil] 
-        Blacklight.config[:sort_fields].unshift(test_sort_field)
+        @solr_helper.blacklight_config[:sort_fields].unshift(test_sort_field)
 
         produced_params = @solr_helper.solr_search_params
         produced_params.should_not have_key(:sort)
 
-        Blacklight.config[:sort_fields].delete(test_sort_field)
+        @solr_helper.blacklight_config[:sort_fields].delete(test_sort_field)
       end
 
       it "should pass through user sort parameters" do
@@ -320,14 +319,7 @@ describe 'Blacklight::SolrHelper' do
 
     describe "for :solr_local_parameters config" do
       before do
-        # Hack to test with our own custom config specified here
-        @orig_blacklight = Blacklight
-        Object.instance_eval{ remove_const :Blacklight }
-        Blacklight = @orig_blacklight.clone
-        Blacklight.unmemoize_all
-        Blacklight.instance_variable_set("@config", {}.deep_merge(@orig_blacklight.config))
-
-        Blacklight.config[:search_fields] = [
+        @solr_helper.blacklight_config[:search_fields] = [
           { :display_label => "Author",
             :qt => "author_qt",
             :key => "author_key",
@@ -356,11 +348,6 @@ describe 'Blacklight::SolrHelper' do
       it "should include include local params with escaping" do
         @result[:q].should include('qf=$author_qf')
         @result[:q].should include('pf=\'you\\\'ll have \\" to escape this\'')
-      end
-
-      after do
-        Object.instance_eval{ remove_const :Blacklight }
-        Blacklight = @orig_blacklight
       end
     end
     
@@ -499,8 +486,8 @@ describe 'Blacklight::SolrHelper' do
         (solr_response, document_list) = @solr_helper.get_search_results(:q => @all_docs_query)
         result_docs = document_list
         document = result_docs.first
-        document.get(Blacklight.config[:index][:show_link]).should_not == nil
-        document.get(Blacklight.config[:index][:record_display_type]).should_not == nil
+        document.get(@solr_helper.blacklight_config[:index][:show_link]).should_not == nil
+        document.get(@solr_helper.blacklight_config[:index][:record_display_type]).should_not == nil
       end
     end
 
@@ -591,10 +578,10 @@ describe 'Blacklight::SolrHelper' do
 
     describe "for default display fields" do
       it "should have a list of field names for index_view_fields" do
-        Blacklight.config[:index_fields].should_not be_nil
-        Blacklight.config[:index_fields][:field_names].should be_instance_of(Array)
-        Blacklight.config[:index_fields][:field_names].length.should > 0
-        Blacklight.config[:index_fields][:field_names][0].should_not == nil
+        @solr_helper.blacklight_config[:index_fields].should_not be_nil
+        @solr_helper.blacklight_config[:index_fields][:field_names].should be_instance_of(Array)
+        @solr_helper.blacklight_config[:index_fields][:field_names].length.should > 0
+        @solr_helper.blacklight_config[:index_fields][:field_names][0].should_not == nil
       end
     end
 
@@ -614,7 +601,7 @@ describe 'Blacklight::SolrHelper' do
       @facets.size.should > 1
     end
     it 'should have all facets specified in initializer' do      
-      Blacklight.config[:default_solr_params][:"facet.field"].each do |field|
+      @solr_helper.blacklight_config[:default_solr_params][:"facet.field"].each do |field|
         @facets.find {|f| f.name == field}.should_not be_nil        
       end
     end
@@ -653,7 +640,7 @@ describe 'Blacklight::SolrHelper' do
     it 'should have number of results (per page) set in initializer, by default' do
       (solr_response, document_list) = @solr_helper.get_search_results(:q => @all_docs_query)
       solr_response.docs.size.should == document_list.size
-      solr_response.docs.size.should == Blacklight.config[:default_solr_params][:per_page]
+      solr_response.docs.size.should == @solr_helper.blacklight_config[:default_solr_params][:per_page]
     end
 
     it 'should get number of results per page requested' do
@@ -666,7 +653,7 @@ describe 'Blacklight::SolrHelper' do
     it 'should skip appropriate number of results when requested - default per page' do
       page = 3
       (solr_response2, document_list2) = @solr_helper.get_search_results(:q => @all_docs_query, :page => page)
-      solr_response2.params[:start].to_i.should ==  Blacklight.config[:default_solr_params][:per_page] * (page-1)
+      solr_response2.params[:start].to_i.should ==  @solr_helper.blacklight_config[:default_solr_params][:per_page] * (page-1)
     end
     it 'should skip appropriate number of results when requested - non-default per page' do
       page = 3
@@ -721,15 +708,15 @@ describe 'Blacklight::SolrHelper' do
       @document.id.should == @doc_id
     end
     it 'should have non-nil values for required fields set in initializer' do
-      @document.get(Blacklight.config[:show][:html_title]).should_not == nil
-      @document.get(Blacklight.config[:show][:heading]).should_not == nil
-      @document.get(Blacklight.config[:show][:display_type]).should_not == nil
+      @document.get(@solr_helper.blacklight_config[:show][:html_title]).should_not == nil
+      @document.get(@solr_helper.blacklight_config[:show][:heading]).should_not == nil
+      @document.get(@solr_helper.blacklight_config[:show][:display_type]).should_not == nil
     end
     it "should have a list of field names for show_view_fields" do
-      Blacklight.config[:show_fields].should_not be_nil
-      Blacklight.config[:show_fields][:field_names].should be_instance_of(Array)
-      Blacklight.config[:show_fields][:field_names].length.should > 0
-      Blacklight.config[:show_fields][:field_names][0].should_not == nil
+      @solr_helper.blacklight_config[:show_fields].should_not be_nil
+      @solr_helper.blacklight_config[:show_fields][:field_names].should be_instance_of(Array)
+      @solr_helper.blacklight_config[:show_fields][:field_names].length.should > 0
+      @solr_helper.blacklight_config[:show_fields][:field_names][0].should_not == nil
     end
   end
 
@@ -780,9 +767,9 @@ describe 'Blacklight::SolrHelper' do
     end
 
     it 'should have non-nil values for required fields set in initializer' do
-      @doc[Blacklight.config[:show][:html_title]].should_not == nil
-      @doc[Blacklight.config[:show][:heading]].should_not == nil
-      @doc[Blacklight.config[:show][:display_type]].should_not == nil
+      @doc[@solr_helper.blacklight_config[:show][:html_title]].should_not == nil
+      @doc[@solr_helper.blacklight_config[:show][:heading]].should_not == nil
+      @doc[@solr_helper.blacklight_config[:show][:display_type]].should_not == nil
     end
 
     it "should limit search result by facets when supplied" do
@@ -838,28 +825,28 @@ describe 'Blacklight::SolrHelper' do
   describe "facet_limit_for" do
 
     it "should return specified value for facet_field specified" do
-      @solr_helper.facet_limit_for("subject_topic_facet").should == Blacklight.config[:facet][:limits]["subject_topic_facet"]
+      @solr_helper.facet_limit_for("subject_topic_facet").should == @solr_helper.blacklight_config[:facet][:limits]["subject_topic_facet"]
     end
     it "@solr_helper.facet_limit_hash should return hash with key being facet_field and value being configured limit" do
-      @solr_helper.facet_limit_hash.should == Blacklight.config[:facet][:limits]
+      @solr_helper.facet_limit_hash.should == @solr_helper.blacklight_config[:facet][:limits]
     end
     it "should handle no facet_limits in config" do
-      Blacklight.config[:facet][:field_names].include?("subject_topic_facet").should be_true
-      Blacklight.config[:facet][:limits].has_key?("subject_topic_facet").should be_true
+      @solr_helper.blacklight_config[:facet][:field_names].include?("subject_topic_facet").should be_true
+      @solr_helper.blacklight_config[:facet][:limits].has_key?("subject_topic_facet").should be_true
       @solr_helper.facet_limit_for("subject_topic_facet").should == 20
-      fl = Blacklight.config[:facet][:limits]
-      Blacklight.config[:facet][:limits] = nil
+      fl = @solr_helper.blacklight_config[:facet][:limits]
+      @solr_helper.blacklight_config[:facet][:limits] = nil
       @solr_helper.facet_limit_for("subject_topic_facet").should be_nil
-      Blacklight.config[:facet][:limits] = fl
+      @solr_helper.blacklight_config[:facet][:limits] = fl
     end
     it "solr_search_params should handle no facet_limits in config" do
-      Blacklight.config[:facet][:field_names].include?("subject_topic_facet").should be_true
-      Blacklight.config[:facet][:limits].has_key?("subject_topic_facet").should be_true
+      @solr_helper.blacklight_config[:facet][:field_names].include?("subject_topic_facet").should be_true
+      @solr_helper.blacklight_config[:facet][:limits].has_key?("subject_topic_facet").should be_true
       @solr_helper.solr_search_params[:"f.subject_topic_facet.facet.limit"].should == 21
-      fl = Blacklight.config[:facet][:limits]
-      Blacklight.config[:facet][:limits] = nil
+      fl = @solr_helper.blacklight_config[:facet][:limits]
+      @solr_helper.blacklight_config[:facet][:limits] = nil
       @solr_helper.solr_search_params.has_key?(:"f.subject_topic_facet.facet.limit").should be_false
-      Blacklight.config[:facet][:limits] = fl
+      @solr_helper.blacklight_config[:facet][:limits] = fl
     end
     describe "for 'true' configured values" do
       it "should return nil if no @response available" do

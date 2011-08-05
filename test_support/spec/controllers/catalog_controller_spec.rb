@@ -93,7 +93,7 @@ describe CatalogController do
       page = 2
       get :index, :page => page
       assigns_response.docs.size.should > 1
-      assigns_response.params[:start].to_i.should == (page-1) * Blacklight.config[:default_solr_params][:per_page]
+      assigns_response.params[:start].to_i.should == (page-1) * @controller.blacklight_config[:default_solr_params][:per_page]
       assert_facets_have_values(assigns_response.facets)
     end
 
@@ -324,7 +324,7 @@ describe CatalogController do
       end
 
     it "should return an unapi formats list from config[:unapi]" do
-      Blacklight.config[:unapi] = { :mock => { :content_type => "application/mock" } }
+      @controller.blacklight_config[:unapi] = { :mock => { :content_type => "application/mock" } }
       get :unapi
       response.should be_success
       assigns[:export_formats][:mock][:content_type].should == "application/mock"

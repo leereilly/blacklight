@@ -68,14 +68,6 @@ end
       it "should provide the item's solr id" do
         @solrdoc.id.should == '00282214'
       end
-
-      it "should have access methods for all special function fields named in initializer" do
-        # the fields specified in Blacklight.config[:show] that
-        Blacklight.config[:show].each_key do |function| 
-          @solrdoc[Blacklight.config[:show][function]].should_not be_nil
-        end
-      end
-      
     end
     
     describe "ruby marc creation" do
