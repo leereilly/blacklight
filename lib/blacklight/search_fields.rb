@@ -30,13 +30,8 @@ module Blacklight::SearchFields
   extend ActiveSupport::Concern
 
   included do
-    if self.respond_to?(:helper_method)
-      helper_method(:search_field_list)
-      helper_method(:normalize_config)
-      helper_method(:search_field_options_for_select)
-      helper_method(:search_field_def_for_key)
-      helper_method(:default_search_field)
-      helper_method(:label_for_search_field)
+    if self.respond_to?(:helper)
+      helper(Blacklight::SearchFields)
     end
   end
 
