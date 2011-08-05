@@ -1,6 +1,8 @@
 # -*- encoding : utf-8 -*-
 class SavedSearchesController < ApplicationController
   before_filter :verify_user 
+  include Blacklight::Configuration  
+  include Blacklight::SearchFields
   
   def index
     @searches = current_user.searches

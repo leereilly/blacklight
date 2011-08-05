@@ -1,5 +1,8 @@
 # -*- encoding : utf-8 -*-
 class SearchHistoryController < ApplicationController
+  include Blacklight::Configuration  
+  include Blacklight::SearchFields
+
   def index
     @searches = searches_from_history
   end
