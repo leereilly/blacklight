@@ -47,10 +47,12 @@ module Blacklight
 
       @_facets || facet
     end
-
     class Facet < OpenStruct; end
 
-
+    def configure 
+      yield self if block_given?
+      self
+    end
 
   end
 end
