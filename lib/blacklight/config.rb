@@ -3,6 +3,23 @@ module Blacklight
   # Blacklight::Config holds the configuration for a Blacklight::Controller, including
   # fields to display, facets to show, sort options, and search fields.
   class Config < OpenStruct
+    def initialize(*args)
+      super(*args)
+      initialize_default_values!
+    end
+
+
+    def initialize_default_values!
+      self.default_solr_params ||= {}
+      self.show ||= {}
+      self.index||= {}
+      self.facet ||= []
+      self.index_fields ||= []
+      self.show_fields ||= []
+      self.search_fields ||= []
+      self.sort_fields ||= []
+      self.spell_max ||= 5
+    end
     ##
     # Helper method for loading a legacy blacklight configuration into the new style Blacklight::Config
     def self.from_legacy_configuration config
