@@ -41,5 +41,16 @@ module Blacklight
     def [](key)
       send key
     end
+
+    def facets  # for some reason, alias_method doesn't work right
+      @_facets ||= facet[:field_names].map { |x| Facet.new :field => x, :limit => facet[:limits][x], :label => facet[:labels][x] } if facet.respond_to? :key? and facet.key? :field_names
+
+      @_facets || facet
+    end
+
+    class Facet < OpenStruct; end
+
+
+
   end
 end
