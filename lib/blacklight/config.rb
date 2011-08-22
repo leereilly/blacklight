@@ -10,6 +10,7 @@ module Blacklight
 
     def initialize_default_values!
       self.default_solr_params ||= {}
+      self.default_search_field = nil
       self.show ||= {}
       self.index||= {}
       self.facets ||= ActiveSupport::OrderedHash.new
@@ -26,29 +27,37 @@ module Blacklight
       config = Marshal.load(Marshal.dump(config))
       blacklight_config = Blacklight::Config.new
 
-      config.reject { |key, value| [:facet, :index_fields, :show_fields, :search_fields, :sort_fields].include? key }.each do |key,value|
-        blacklight_config.send("#{key}=", (OpenStructWithHashAccess.new(value) if value.is_a? Hash) || value)
-      end
+      # SolrHelper#default_solr_parameters needs to iterate over the keys, so this can't be a Struct
+      blacklight_config.default_solr_params = config[:default_solr_params].dup
 
       config[:facet][:field_names].each do |x|
-        blacklight_config.facets[x.to_sym] = Facet.new(:field => x, :limit => config[:facet][:limits][x], :label => config[:facet][:labels][x])
+        blacklight_config.facet :field => x, :limit => config[:facet][:limits][x], :label => config[:facet][:labels][x]
       end
 
       config[:index_fields][:field_names].each do |x|
-        blacklight_config.index_fields[x.to_sym] = Field.new(:field => x, :label => config[:index_fields][:labels][x])
+        blacklight_config.index_field :field => x, :label => config[:index_fields][:labels][x]
       end
 
       config[:show_fields][:field_names].each do |x|
-        blacklight_config.show_fields[x.to_sym] = Field.new(:field => x, :label => config[:show_fields][:labels][x])
+        blacklight_config.show_field :field => x, :label => config[:show_fields][:labels][x]
       end
 
       config[:search_fields].each do |x|
-        blacklight_config.search_fields[x[:key].to_sym] = SearchField.new(x)
+        unless x.is_a? Hash
+          x = { :display_label => x[0], :key => x[1], :qt => x[1]}
+        end
+
+        blacklight_config.search_field x
       end
 
       config[:sort_fields].each do |label, sort|
-        blacklight_config.sort_fields[sort] = SortField.new(:label => label, :sort => sort)
+        blacklight_config.sort_field :label => label, :sort => sort
       end
+
+      config.reject { |key, value| [:default_solr_params, :facet, :index_fields, :show_fields, :search_fields, :sort_fields].include? key }.each do |key,value|
+        blacklight_config.send("#{key}=", (OpenStructWithHashAccess.new(value) if value.is_a? Hash) || value)
+      end
+
 
       blacklight_config
     end
@@ -101,7 +110,13 @@ module Blacklight
 
     def search_field field_or_hash
       field_or_hash = SearchField.new(field_or_hash) if field_or_hash.is_a? Hash
-      search_fields[field_or_hash.field] = field_or_hash
+      raise Exception.new("Search field config is missing ':key' => #{field_or_hash.inspect}") unless field_or_hash.key
+
+      # If no display_label was provided, turn the :key into one.      
+      field_or_hash.display_label ||= field_or_hash.key.titlecase
+      field_or_hash.qt ||= default_solr_params[:qt] if default_solr_params
+
+      search_fields[field_or_hash.key] = field_or_hash 
     end
 
     def sort_field field_or_hash
