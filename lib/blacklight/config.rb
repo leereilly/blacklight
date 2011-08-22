@@ -84,6 +84,32 @@ module Blacklight
     class SearchField < OpenStruct; end
     class SortField < OpenStruct; end
 
+    def facet facet_or_hash
+      facet_or_hash = Facet.new(facet_or_hash) if facet_or_hash.is_a? Hash
+      facets[facet_or_hash.field] = facet_or_hash
+    end
+
+    def index_field field_or_hash
+      field_or_hash = Field.new(field_or_hash) if field_or_hash.is_a? Hash
+      index_fields[field_or_hash.field] = field_or_hash
+    end
+
+    def show_field field_or_hash
+      field_or_hash = Field.new(field_or_hash) if field_or_hash.is_a? Hash
+      show_fields[field_or_hash.field] = field_or_hash
+    end
+
+    def search_field field_or_hash
+      field_or_hash = SearchField.new(field_or_hash) if field_or_hash.is_a? Hash
+      search_fields[field_or_hash.field] = field_or_hash
+    end
+
+    def sort_field field_or_hash
+      field_or_hash = SortField.new(field_or_hash) if field_or_hash.is_a? Hash
+      sort_fields[field_or_hash.field] = field_or_hash
+    end
+
+
     def configure 
       yield self if block_given?
       self
