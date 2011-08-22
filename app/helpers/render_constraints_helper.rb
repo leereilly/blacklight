@@ -94,7 +94,7 @@ module RenderConstraintsHelper
     return "".html_safe unless params[:f]
 
     params[:f].collect do |facet_field, value_list|
-      render_search_to_s_element(blacklight_config[:facet][:labels][facet_field],
+      render_search_to_s_element(blacklight_config.facets[facet_field].label,
         value_list.collect do |value|
           render_filter_value(value)
         end.join(content_tag(:span, 'and', :class =>'label')).html_safe

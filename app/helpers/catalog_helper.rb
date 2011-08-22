@@ -74,7 +74,7 @@ module CatalogHelper
   end
   
   def render_document_class(document = @document)
-   'blacklight-' + document.get(blacklight_config[:index][:record_display_type]).parameterize rescue nil
+   'blacklight-' + document.get(blacklight_config.index.record_display_type).parameterize rescue nil
   end
 
   def render_document_sidebar_partial(document = @document)

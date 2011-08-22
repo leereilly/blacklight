@@ -6,12 +6,13 @@ module FacetsHelper
   
   # used in the catalog/_facets partial
   def facet_field_labels
-    blacklight_config[:facet][:labels]
+    # DEPRECATED
+    Hash[*blacklight_config.facets.map { |key, facet| [key, facet.label] }.flatten]
   end
   
   # used in the catalog/_facets partial
   def facet_field_names
-    blacklight_config[:facet][:field_names]
+    blacklight_config.facets.keys
   end
 
   # used in the catalog/_facets partial and elsewhere
