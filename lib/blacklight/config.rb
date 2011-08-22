@@ -13,17 +13,44 @@ module Blacklight
       self.default_solr_params ||= {}
       self.show ||= {}
       self.index||= {}
-      self.facet ||= []
-      self.index_fields ||= []
-      self.show_fields ||= []
-      self.search_fields ||= []
-      self.sort_fields ||= []
+      self.facets ||= ActiveSupport::OrderedHash.new
+      self.index_fields ||= ActiveSupport::OrderedHash.new
+      self.show_fields ||= ActiveSupport::OrderedHash.new
+      self.search_fields ||= ActiveSupport::OrderedHash.new
+      self.sort_fields ||= ActiveSupport::OrderedHash.new
       self.spell_max ||= 5
     end
     ##
     # Helper method for loading a legacy blacklight configuration into the new style Blacklight::Config
     def self.from_legacy_configuration config
-      Blacklight::Config.new Marshal.load(Marshal.dump(config))
+      config = Marshal.load(Marshal.dump(config))
+      blacklight_config = Blacklight::Config.new
+
+      config.reject { |key, value| [:facet, :index_fields, :show_fields, :search_fields, :sort_fields].include? key }.each do |key,value|
+        blacklight_config.send("#{key}=", (OpenStructWithHashAccess.new(value) if value.is_a? Hash) || value)
+      end
+
+      config[:facet][:field_names].each do |x|
+        blacklight_config.facets[x.to_sym] = Facet.new(:field => x, :limit => config[:facet][:limits][x], :label => config[:facet][:labels][x])
+      end
+
+      config[:index_fields][:field_names].each do |x|
+        blacklight_config.index_fields[x.to_sym] = Field.new(:field => x, :label => config[:index_fields][:labels][x])
+      end
+
+      config[:show_fields][:field_names].each do |x|
+        blacklight_config.show_fields[x.to_sym] = Field.new(:field => x, :label => config[:show_fields][:labels][x])
+      end
+
+      config[:search_fields].each do |x|
+        blacklight_config.search_fields[x[:key].to_sym] = SearchField.new(x)
+      end
+
+      config[:sort_fields].each do |label, sort|
+        blacklight_config.sort_fields[sort] = SortField.new(:label => label, :sort => sort)
+      end
+
+      blacklight_config
     end
 
     ##
@@ -42,12 +69,20 @@ module Blacklight
       send key
     end
 
-    def facets  # for some reason, alias_method doesn't work right
-      @_facets ||= facet[:field_names].map { |x| Facet.new :field => x, :limit => facet[:limits][x], :label => facet[:labels][x] } if facet.respond_to? :key? and facet.key? :field_names
+    class OpenStructWithHashAccess < OpenStruct
+      def []=(key, value)
+        send "#{key}=", value
+      end
 
-      @_facets || facet
+      def [](key)
+        send key
+      end
     end
+
     class Facet < OpenStruct; end
+    class Field < OpenStruct; end
+    class SearchField < OpenStruct; end
+    class SortField < OpenStruct; end
 
     def configure 
       yield self if block_given?
