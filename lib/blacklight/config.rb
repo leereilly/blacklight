@@ -8,7 +8,6 @@ module Blacklight
       initialize_default_values!
     end
 
-
     def initialize_default_values!
       self.default_solr_params ||= {}
       self.show ||= {}
@@ -20,6 +19,7 @@ module Blacklight
       self.sort_fields ||= ActiveSupport::OrderedHash.new
       self.spell_max ||= 5
     end
+
     ##
     # Helper method for loading a legacy blacklight configuration into the new style Blacklight::Config
     def self.from_legacy_configuration config
